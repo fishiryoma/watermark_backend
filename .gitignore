@@ -1,0 +1,19 @@
+# Python 虛擬環境
+.venv/
+*.env
+
+# 編譯文件
+__pycache__/
+*.py[cod]
+
+# IDE 配置
+.idea/
+.vscode/
+
+# 日誌和暫存
+*.log
+.cache/
+
+# 操作系統文件
+.DS_Store
+Thumbs.db
