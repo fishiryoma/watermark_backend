@@ -4,7 +4,7 @@ from flask_cors import CORS
 from io import BytesIO
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, expose_headers=["Content-Disposition"])
 
 @app.route("/api/watermark", methods=["POST"])
 def add_watermarker():
@@ -15,15 +15,13 @@ def add_watermarker():
         p_y = int(request.form.get("y", 10))
         font_size = int(request.form.get('font', 36))
         color = request.form.get("color", "white")
-        print(request)
 
-        if "image" not in request.files:
+        if "file" not in request.files:
             return jsonify({"error": "No Image"}), 400
 
-        file = request.files["image"]
-        if not file or file.filename == "":
-        # 待釐清，當沒添加檔案時，filename是不存在還是空字串?
-            return jsonify({"error": "No Image"}), 400
+        file = request.files.get("file")
+        if file.filename == "":
+            return jsonify({"error": "Invalid Image"}), 400
 
         # 確認文件的 MIME 類型為圖片
         if not file.content_type.startswith("image/"):
@@ -40,21 +38,23 @@ def add_watermarker():
         bbox = draw.textbbox((0,0), text, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
+        # print(p_y, int(image_height - text_height - text_height/2))
         p_x = min(p_x, int(image_width - text_width))
-        p_y = min(p_y, int(text_height - text_height))
+        p_y = min(p_y, int(image_height - text_height - text_height/2))
         position = (p_x, p_y)
-
+        # print(position)
         draw.text(position, text, font=font, fill=color)
 
         # 在記憶體中暫存圖片
         img_io = BytesIO()
         output_format = file.content_type.split("/")[-1].upper()
-        print(file.content_type)
+        # print(file.content_type)
         if output_format not in ["JPEG", "PNG"]:
             output_format = "JPEG"
         image.save(img_io, "JPEG")
         img_io.seek(0)
-        return send_file(img_io, mimetype="image/jpeg")
+        return send_file(img_io, mimetype=file.content_type, as_attachment=True,
+                         download_name=f"watermarker_{file.filename}")
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
